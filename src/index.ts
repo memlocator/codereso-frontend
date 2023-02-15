@@ -1,39 +1,86 @@
-import * as THREE from 'three';
 
-function component() {
-    const element = document.createElement('div');
+import { Euler, Vector3 } from "three";
+import { radToDeg } from "three/src/math/MathUtils";
+import {Entity} from "./classes/Entity"
+import {Game} from "./classes/Game"
 
-    // Lodash, currently included via a script, is required for this line to work
-    element.innerHTML = "hi"//_.join(['Hello', 'fish'], ' ');
+// const socket = new WebSocket('wss://localhost:7243');
+const socket = new WebSocket('ws://localhost:5000');
 
-    return element;
-  }
+const game = new Game()
+var entities = new Array(); 
 
-  document.body.appendChild(component());
+// Connection opened
+socket.addEventListener('open', (event) => {
+    socket.send('Hello Server!');
+});
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+// Listen for messages
+socket.addEventListener('message', (event) => {
+    let data = JSON.parse(event.data)
+    // console.log('Message from server ', data);
+    data.hasProperty
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+    if (data["type"]) {
+      // console.log(data["type"])
+      const type = data["type"]
+      
+      switch(type) { 
+        case "NewEntityEvent": { 
+           //statements; 
+          console.log("Create new entity event")
+          const entityData = data["entity"]
 
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
+          const entity = new Entity(entityData["id"], game.scene)
+          entities.push(entity)
+          break; 
+        } 
+        case "UpdateEntityEvent": { 
+          console.log("Update entity event", data)
+          const entityData = data["entity"]
+          let entityID = Number(entityData["id"])
+          let realEntity = getEntityByID(entityID)
 
-camera.position.z = 5;
+          let x = entityData["transform"]["position"]["x"]
+          let y = entityData["transform"]["position"]["y"]
+          realEntity.mesh.position.set(x, y, 0);
+
+          let rotation = entityData["transform"]["rotation"]
+          realEntity.mesh.rotation.set(0, 0, rotation)//rotateOnAxis(new Vector3(0, 0, 1), rotation)
+          break; 
+        } 
+        case "DestroyedEntityEvent": {
+          console.log("Destroy entity event")
+          break;
+        }
+        default: { 
+           //statements; 
+           break; 
+        } 
+     } 
+    }
+    //entity.mesh.position.set(data["x"], 0, 0)
+    //entity.mesh.scale.set(data["scale"]["x"], data["scale"]["y"], 0)
+    //entity.mesh.position.set(data["position"]["x"], data["position"]["y"], 0)
+    //entity.mesh.setRotationFromAxisAngle(new Vector3(0, 0, 1), radToDeg(data["rotation"]))
+});
+
+function getEntityByID(id : Number) : Entity
+{
+  let foundEntity : Entity  = null;
+  entities.forEach(entityItem => {
+    if (id == entityItem.id){
+      foundEntity = entityItem
+    }
+  });
+
+  return foundEntity;
+}
 
 function animate() {
   requestAnimationFrame(animate);
 
-  cube.rotation.x += 0.01;
-  cube.rotation.y += 0.01;
-
-  renderer.render(scene, camera);
-
-  console.debug("hello")
+  game.renderer.render(game.scene, game.camera);
 };
 
 animate();

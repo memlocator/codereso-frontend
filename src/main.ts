@@ -3,6 +3,7 @@ import { Euler, Vector3 } from "three";
 import { radToDeg } from "three/src/math/MathUtils";
 import {Entity} from "./classes/Entity"
 import {Game} from "./classes/Game"
+import { setupCounter } from './counter'
 
 // const socket = new WebSocket('wss://localhost:7243');
 const socket = new WebSocket('ws://localhost:5000');
